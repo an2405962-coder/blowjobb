@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Question</title><meta name="description" content="سؤال صغير، وإجابة فيها مفاجأة.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%237b35ed'/%3E%3Ctext x='20' y='29' text-anchor='middle' font-size='29' fill='white'%3E?%3C/text%3E%3C/svg%3E">
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100svh;background:#f3efff;color:#281b45;font-family:Tahoma,Arial,sans-serif;display:grid;place-items:center;padding:24px;background-image:radial-gradient(ellipse at 15% 10%,#e2d5ff 0,transparent 50%),radial-gradient(ellipse at 95% 95%,#fbd9ed 0,transparent 45%)}
+main{width:min(620px,100%);text-align:center;padding:64px 36px 54px;background:#ffffffc9;border:1px solid #fff;border-radius:32px;box-shadow:0 24px 90px #50328512}.badge{display:inline-grid;place-items:center;width:66px;height:66px;border-radius:22px;background:#ede3ff;color:#7736dc;font-size:36px;transform:rotate(-9deg)}h1{font-size:clamp(1.7rem,5vw,2.6rem);line-height:1.65;margin:25px 0 38px;overflow-wrap:anywhere;white-space:pre-wrap}button{font:700 1.1rem Tahoma,Arial,sans-serif;cursor:pointer;touch-action:manipulation;border:0;min-width:126px;min-height:56px;border-radius:18px;padding:15px 30px}button:focus-visible{outline:3px solid #281b45;outline-offset:5px}.answers{display:flex;justify-content:center;gap:18px;direction:ltr}#yes{color:#fff;background:#7b35ed;box-shadow:0 8px 20px #7b35ed30}#yes:hover{background:#6822d4}#no{background:#eee9f5;color:#716480;z-index:2;user-select:none;touch-action:none}.slot{width:126px;min-height:56px;flex-shrink:0}dialog{border:0;padding:20px;width:min(440px,calc(100% - 32px));border-radius:28px;color:#281b45;text-align:center;box-shadow:0 30px 100px #1e0d4940;max-height:90svh;overflow:auto}dialog::backdrop{background:#20103575;backdrop-filter:blur(7px)}.close{display:block;margin:0 0 12px auto;min-width:40px;min-height:40px;padding:5px;border-radius:50%;background:#f2eef8;font-size:24px;font-weight:400}#photo{width:100%;max-height:48svh;object-fit:contain;border-radius:16px;background:#f3efff}#empty{aspect-ratio:4/3;background:#f3efff;border:2px dashed #d9c8f7;border-radius:16px;display:grid;place-items:center;color:#796391;font-size:1rem}#empty[hidden],#photo[hidden]{display:none}#message{font-size:1.3rem;line-height:1.8;padding:0 8px;margin:20px 0 10px;white-space:pre-wrap;overflow-wrap:anywhere}@media(max-width:480px){main{padding:44px 20px;border-radius:26px}.answers{gap:12px}button{min-width:110px}.slot{width:110px}}
+/* مساحة صغيرة للهرب داخل الكارت، حتى على الموبايل. */
+main{position:relative;overflow:hidden;padding-bottom:154px}
+#no{will-change:left,top,transform;transform-origin:center}
+@media(max-width:480px){main{padding-bottom:144px}}
+</style>
+</head>
+<body>
+<main><h1 id="question"></h1><div class="answers"><button id="yes">Yes</button><div class="slot"><button id="no" aria-label="No" aria-disabled="true">No</button></div></div></main>
+<dialog id="surprise" aria-labelledby="message"><button class="close" aria-label="إغلاق">×</button><img id="photo" alt="صورة المفاجأة" hidden><div id="empty">صورتك هتظهر هنا</div><p id="message"></p></dialog>
+<script>
+// غيّر السؤال والرسالة هنا. ضع الصورة بجانب الملف واكتب اسمها في image.
+const CONFIG = {
+  question: 'عايز بلوجوب ؟ 💜',
+  message: 'ابسط يا عم 💜',
+  image: 'khod.jpeg' // مثال: 'photo.jpg'
+};
+document.querySelector('#question').textContent = CONFIG.question;
+document.querySelector('#message').textContent = CONFIG.message;
+const photo=document.querySelector('#photo'),empty=document.querySelector('#empty');
+if(CONFIG.image){photo.onload=()=>{photo.hidden=false;empty.hidden=true};photo.onerror=()=>{photo.hidden=true;empty.hidden=false;empty.textContent='الصورة مش متاحة حاليًا'};photo.src=CONFIG.image}
+const no=document.querySelector('#no'),yes=document.querySelector('#yes'),dialog=document.querySelector('#surprise');
+const card=document.querySelector('main');
+const reducedMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
+let moved=false,flight=null;
+function escapeButton(event){
+  if(event && event.cancelable)event.preventDefault();
+  if(flight && flight.playState==='running' && event?.type==='pointermove')return;
+  const r=no.getBoundingClientRect(), c=card.getBoundingClientRect(), y=yes.getBoundingClientRect();
+  const originX=c.left+card.clientLeft,originY=c.top+card.clientTop;
+  const w=no.offsetWidth,h=no.offsetHeight,pad=20;
+  const startX=r.left-originX,startY=r.top-originY;
+  const minY=y.top-originY,maxX=Math.max(pad,card.clientWidth-w-pad);
+  const maxY=Math.max(minY,card.clientHeight-h-pad);
+  const px=event && Number.isFinite(event.clientX)?event.clientX-originX:startX+w/2;
+  const py=event && Number.isFinite(event.clientY)?event.clientY-originY:startY+h/2;
+  let best=null;
+  // اختار أقرب مكان آمن بدل الهرب لأبعد نقطة في الشاشة.
+  for(let i=0;i<100;i++){
+    const x=pad+Math.random()*(maxX-pad),top=minY+Math.random()*(maxY-minY);
+    if(x<y.right-originX+18 && x+w>y.left-originX-18 && top<y.bottom-originY+18)continue;
+    if(px>x-38 && px<x+w+38 && py>top-38 && py<top+h+38)continue;
+    const travel=Math.hypot(x-startX,top-startY);
+    const score=Math.abs(travel-115);
+    if(!best || score<best.score)best={x,y:top,score};
+  }
+  if(!best)best={x:px>card.clientWidth/2?pad:maxX,y:maxY};
+  flight?.cancel();
+  no.style.position='absolute';no.style.left=best.x+'px';no.style.top=best.y+'px';moved=true;
+  if(!reducedMotion.matches){
+    const tilt=best.x>=startX?9:-9;
+    flight=no.animate([
+      {left:startX+'px',top:startY+'px',transform:'scale(1, .87) rotate(0deg)'},
+      {left:(startX+(best.x-startX)*.55)+'px',top:(startY+(best.y-startY)*.55)+'px',transform:`translateY(-8px) scale(.94, 1.06) rotate(${tilt}deg)`,offset:.55},
+      {left:best.x+'px',top:best.y+'px',transform:`scale(1.06, .92) rotate(${-tilt*.35}deg)`,offset:.85},
+      {left:best.x+'px',top:best.y+'px',transform:'none'}
+    ],{duration:300,easing:'cubic-bezier(.2,.7,.25,1)'});
+  }
+}
+document.addEventListener('pointermove',event=>{
+  if(dialog.open)return;
+  const r=no.getBoundingClientRect();
+  if(event.clientX>r.left-34 && event.clientX<r.right+34 && event.clientY>r.top-34 && event.clientY<r.bottom+34)escapeButton(event);
+});
+no.addEventListener('pointerdown',escapeButton);
+no.addEventListener('click',escapeButton);
+no.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){escapeButton(event);yes.focus()}});
+window.addEventListener('resize',()=>{flight?.cancel();no.style.position='';no.style.left='';no.style.top='';moved=false});
+yes.addEventListener('click',()=>dialog.showModal());
+dialog.querySelector('.close').addEventListener('click',()=>dialog.close());
+dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close()}});
+</script>
+</body>
+</html>
